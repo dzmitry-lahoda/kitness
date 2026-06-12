@@ -18,11 +18,11 @@ const _: () = {
     assert!(witnesses::u8::fixed::<8>().within(witnesses::u8::fixed::<8>()));
     assert!(!witnesses::u8::fixed::<8>().within(witnesses::u8::fixed::<9>()));
 
-     assert!(witnesses::u16::fixed::<8>().within(witnesses::u32::non_empty::<1, 10>()));
-        assert!(!witnesses::u16::fixed::<8>().within(witnesses::u32::non_empty::<9, 10>()));
-        assert!(!witnesses::u16::fixed::<8>().within(witnesses::u32::non_empty::<1, 7>()));
+    assert!(witnesses::u16::fixed::<8>().within(witnesses::u32::non_empty::<1, 10>()));
+    assert!(!witnesses::u16::fixed::<8>().within(witnesses::u32::non_empty::<9, 10>()));
+    assert!(!witnesses::u16::fixed::<8>().within(witnesses::u32::non_empty::<1, 7>()));
 
-        assert!(witnesses::u8::non_empty::<2, 8>().within(witnesses::u64::empty::<10>()));
-        assert!(!witnesses::u8::empty::<8>().within(witnesses::u16::fixed::<8>()));
-        assert!(witnesses::usize::fixed::<8>().within(witnesses::u8::fixed::<8>()));
+    assert!(witnesses::u8::non_empty::<2, 8>().within(witnesses::u64::empty::<10>()));
+    assert!(!witnesses::u8::empty::<8>().within(witnesses::u16::fixed::<8>()));
+    assert!(witnesses::usize::fixed::<8>().within(witnesses::u8::fixed::<8>()));
 };
