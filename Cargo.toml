@@ -1,0 +1,15 @@
+[package]
+name = "kitness"
+version = "0.1.0"
+edition = "2024"
+
+[features]
+borsh15 = []
+borsh_schema15 = []
+schemars12 = []
+serde1 = []
+konst = []
+
+[dependencies]
+konst = "*"
+typewit = { version = "*", features = ["rust_stable"]}
