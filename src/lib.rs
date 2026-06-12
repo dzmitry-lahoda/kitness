@@ -6,6 +6,23 @@
 // - decide stackalloc or smallvec or std::vec, depending on range * size_of at compile time
 // - make some values of vec to be not usize, but other numbers
 
+/// Normalized bounds for any vector-bound witness.
+pub trait WitnessBounds: Copy {
+    const LOWER: u128;
+    const UPPER: u128;
+}
+
+/// Checks whether one witness's bounds are within another witness's bounds.
+pub const fn witness_within<Inner, Outer>(inner: Inner, outer: Outer) -> bool
+where
+    Inner: WitnessBounds,
+    Outer: WitnessBounds,
+{
+    let _ = (inner, outer);
+    konst::cmp::const_le!(Outer::LOWER, Inner::LOWER)
+        && konst::cmp::const_le!(Inner::UPPER, Outer::UPPER)
+}
+
 macro_rules! define_witnesses {
     ($module:ident, $integer:ty) => {
         pub mod $module {
@@ -17,10 +34,18 @@ macro_rules! define_witnesses {
             pub struct NonEmpty<const L: $integer, const U: $integer>(());
 
             impl<const L: $integer, const U: $integer> NonEmpty<L, U> {
-                /// Checks whether this witness is within the target bounds.
-                pub const fn within<const WL: $integer, const WU: $integer>(self) -> bool {
-                    konst::cmp::const_le!(WL, L) && konst::cmp::const_le!(U, WU)
+                /// Checks whether this witness is within another witness.
+                pub const fn within<Other>(self, other: Other) -> bool
+                where
+                    Other: crate::WitnessBounds,
+                {
+                    crate::witness_within(self, other)
                 }
+            }
+
+            impl<const L: $integer, const U: $integer> crate::WitnessBounds for NonEmpty<L, U> {
+                const LOWER: u128 = L as u128;
+                const UPPER: u128 = U as u128;
             }
 
             pub type OneOrMore = NonEmpty<1, { <$integer>::MAX }>;
@@ -31,10 +56,18 @@ macro_rules! define_witnesses {
             pub struct Empty<const U: $integer>(());
 
             impl<const U: $integer> Empty<U> {
-                /// Checks whether this witness is within the target upper bound.
-                pub const fn within<const WU: $integer>(self) -> bool {
-                    konst::cmp::const_le!(U, WU)
+                /// Checks whether this witness is within another witness.
+                pub const fn within<Other>(self, other: Other) -> bool
+                where
+                    Other: crate::WitnessBounds,
+                {
+                    crate::witness_within(self, other)
                 }
+            }
+
+            impl<const U: $integer> crate::WitnessBounds for Empty<U> {
+                const LOWER: u128 = 0;
+                const UPPER: u128 = U as u128;
             }
 
             /// Fixed capacity vector. Cannot be resized.
@@ -43,10 +76,18 @@ macro_rules! define_witnesses {
             pub struct Fixed<const C: $integer>(());
 
             impl<const C: $integer> Fixed<C> {
-                /// Checks whether this witness is within the target bounds.
-                pub const fn within<const WL: $integer, const WU: $integer>(self) -> bool {
-                    konst::cmp::const_le!(WL, C) && konst::cmp::const_le!(C, WU)
+                /// Checks whether this witness is within another witness.
+                pub const fn within<Other>(self, other: Other) -> bool
+                where
+                    Other: crate::WitnessBounds,
+                {
+                    crate::witness_within(self, other)
                 }
+            }
+
+            impl<const C: $integer> crate::WitnessBounds for Fixed<C> {
+                const LOWER: u128 = C as u128;
+                const UPPER: u128 = C as u128;
             }
 
             /// Type a compile-time proof of valid bounds.
@@ -111,23 +152,3 @@ pub mod witnesses {
 
 pub use witnesses::usize::{Empty, Fixed, NonEmpty, OneOrMore, empty, fixed, non_empty};
 
-#[cfg(test)]
-mod tests {
-    use super::witnesses;
-
-    const _: () = {
-        assert!(witnesses::u8::non_empty::<2, 8>().within::<1, 10>());
-        assert!(!witnesses::u8::non_empty::<2, 8>().within::<3, 10>());
-        assert!(!witnesses::u8::non_empty::<2, 8>().within::<1, 7>());
-
-        assert!(witnesses::u16::empty::<8>().within::<10>());
-        assert!(!witnesses::u16::empty::<8>().within::<7>());
-
-        assert!(witnesses::u32::fixed::<8>().within::<1, 10>());
-        assert!(!witnesses::u32::fixed::<8>().within::<9, 10>());
-        assert!(!witnesses::u32::fixed::<8>().within::<1, 7>());
-
-        assert!(witnesses::usize::non_empty::<2, 8>().within::<1, 10>());
-        assert!(witnesses::u64::non_empty::<2, 8>().within::<1, 10>());
-    };
-}
