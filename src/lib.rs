@@ -72,6 +72,28 @@ macro_rules! define_witnesses {
             {
             }
 
+            impl<const MIN: $integer, const MAX: $integer> From<NonEmpty<MIN, MAX>>
+                for core::range::RangeInclusive<$integer>
+            {
+                fn from(_: NonEmpty<MIN, MAX>) -> Self {
+                    Self {
+                        start: MIN,
+                        last: MAX,
+                    }
+                }
+            }
+
+            impl<const MIN: $integer, const MAX: $integer> From<NonEmpty<MIN, MAX>>
+                for core::range::RangeInclusive<core::num::NonZero<$integer>>
+            {
+                fn from(_: NonEmpty<MIN, MAX>) -> Self {
+                    Self {
+                        start: core::num::NonZero::new(MIN).unwrap(),
+                        last: core::num::NonZero::new(MAX).unwrap(),
+                    }
+                }
+            }
+
             pub type OneOrMore = NonEmpty<1, { <$integer>::MAX }>;
 
             /// Possibly empty vector with max bound.
@@ -102,6 +124,15 @@ macro_rules! define_witnesses {
 
             impl<const MAX: $integer> crate::sealed::WitnessBounds for Empty<MAX> {}
 
+            impl<const MAX: $integer> From<Empty<MAX>> for core::range::RangeInclusive<$integer> {
+                fn from(_: Empty<MAX>) -> Self {
+                    Self {
+                        start: 0,
+                        last: MAX,
+                    }
+                }
+            }
+
             /// Fixed capacity vector. Cannot be resized.
             #[derive(Debug, PartialEq, Clone, Copy, Eq, Hash, Ord, PartialOrd)]
             #[non_exhaustive]
@@ -129,6 +160,12 @@ macro_rules! define_witnesses {
             }
 
             impl<const C: $integer> crate::sealed::WitnessBounds for Fixed<C> {}
+
+            impl<const C: $integer> From<Fixed<C>> for core::range::RangeInclusive<$integer> {
+                fn from(_: Fixed<C>) -> Self {
+                    Self { start: C, last: C }
+                }
+            }
 
             /// Type a compile-time proof of valid bounds.
             pub const fn non_empty<const MIN: $integer, const MAX: $integer>() -> NonEmpty<MIN, MAX> {
