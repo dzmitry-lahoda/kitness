@@ -6,13 +6,18 @@
 // - decide stackalloc or smallvec or std::vec, depending on range * size_of at compile time
 // - make some values of vec to be not usize, but other numbers
 
+#![no_std]
+
 mod sealed {
     pub trait WitnessBounds {}
 }
 
 /// Normalized bounds for any vector-bound witness.
+#[doc(hidden)]
 pub trait WitnessBounds: Copy + sealed::WitnessBounds {
+    #[doc(hidden)]
     const MIN: u128;
+    #[doc(hidden)]
     const MAX: u128;
 }
 
@@ -138,7 +143,7 @@ macro_rules! define_witnesses {
             }
 
             const fn serde<const MAX: $integer>() {
-                #[cfg(feature = "schemars12")]
+                #[cfg(feature = "json")]
                 if MAX as u128 > u32::MAX as u128 {
                     // There is no const safe way to cast usize to u32, nor to other bigger number.
                     panic!(
@@ -146,7 +151,7 @@ macro_rules! define_witnesses {
                     )
                 }
 
-                #[cfg(feature = "borsh15")]
+                #[cfg(feature = "borsh")]
                 if MAX as u128 > u32::MAX as u128 {
                     panic!(
                         "`borsh` specifies size of dynamic containers as u32, so `MAX` must be less than or equal to `u32::MAX`"
