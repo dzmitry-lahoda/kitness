@@ -6,14 +6,21 @@
 // - decide stackalloc or smallvec or std::vec, depending on range * size_of at compile time
 // - make some values of vec to be not usize, but other numbers
 
+#![no_std]
+
 mod sealed {
     pub trait WitnessBounds {}
 }
 
 /// Normalized bounds for any vector-bound witness.
+#[doc(hidden)]
 pub trait WitnessBounds: Copy + sealed::WitnessBounds {
-    const MIN: u128;
-    const MAX: u128;
+    #[doc(hidden)]
+    #[allow(non_upper_case_globals)]
+    const MIN_u128: u128;
+    #[doc(hidden)]
+    #[allow(non_upper_case_globals)]
+    const MAX_u128: u128;
 }
 
 /// Checks whether one witness's bounds are within another witness's bounds.
@@ -23,7 +30,8 @@ where
     Outer: WitnessBounds,
 {
     let _ = (inner, outer);
-    konst::cmp::const_le!(Outer::MIN, Inner::MIN) && konst::cmp::const_le!(Inner::MAX, Outer::MAX)
+    konst::cmp::const_le!(Outer::MIN_u128, Inner::MIN_u128)
+        && konst::cmp::const_le!(Inner::MAX_u128, Outer::MAX_u128)
 }
 
 macro_rules! define_witnesses {
@@ -55,8 +63,8 @@ macro_rules! define_witnesses {
             impl<const MIN: $integer, const MAX: $integer> crate::WitnessBounds
                 for NonEmpty<MIN, MAX>
             {
-                const MIN: u128 = MIN as u128;
-                const MAX: u128 = MAX as u128;
+                const MIN_u128: u128 = MIN as u128;
+                const MAX_u128: u128 = MAX as u128;
             }
 
             impl<const MIN: $integer, const MAX: $integer> crate::sealed::WitnessBounds
@@ -88,8 +96,8 @@ macro_rules! define_witnesses {
             }
 
             impl<const MAX: $integer> crate::WitnessBounds for Empty<MAX> {
-                const MIN: u128 = 0;
-                const MAX: u128 = MAX as u128;
+                const MIN_u128: u128 = 0;
+                const MAX_u128: u128 = MAX as u128;
             }
 
             impl<const MAX: $integer> crate::sealed::WitnessBounds for Empty<MAX> {}
@@ -116,8 +124,8 @@ macro_rules! define_witnesses {
             }
 
             impl<const C: $integer> crate::WitnessBounds for Fixed<C> {
-                const MIN: u128 = C as u128;
-                const MAX: u128 = C as u128;
+                const MIN_u128: u128 = C as u128;
+                const MAX_u128: u128 = C as u128;
             }
 
             impl<const C: $integer> crate::sealed::WitnessBounds for Fixed<C> {}
@@ -138,7 +146,7 @@ macro_rules! define_witnesses {
             }
 
             const fn serde<const MAX: $integer>() {
-                #[cfg(feature = "schemars12")]
+                #[cfg(feature = "json")]
                 if MAX as u128 > u32::MAX as u128 {
                     // There is no const safe way to cast usize to u32, nor to other bigger number.
                     panic!(
@@ -146,7 +154,7 @@ macro_rules! define_witnesses {
                     )
                 }
 
-                #[cfg(feature = "borsh15")]
+                #[cfg(feature = "borsh")]
                 if MAX as u128 > u32::MAX as u128 {
                     panic!(
                         "`borsh` specifies size of dynamic containers as u32, so `MAX` must be less than or equal to `u32::MAX`"
