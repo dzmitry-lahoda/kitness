@@ -1,0 +1,1 @@
+//! I am thinking how to make rational(a/b) witness, seems need to drill into const cmp
